@@ -25,3 +25,20 @@ jobs:
         run: npm install
       - name: Publicar y verificar 8 señales NDI
         run: npm run prueba:verificar
+
+  servidor:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar configuración de Jitsi (sin Docker)
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File servidor\preparar.ps1 -SinDocker
+      - name: Revisar el .env generado
+        shell: powershell
+        run: |
+          $e = Get-Content servidor\jitsi\.env
+          $e | Select-String -Pattern '^(CONFIG|TZ|HTTPS_PORT|PUBLIC_URL|JVB_ADVERTISE_IPS|RESOLUTION\w*|DISABLE_DEEP_LINKING)='
+          $faltan = 'JICOFO_AUTH_PASSWORD','JVB_AUTH_PASSWORD' | Where-Object { -not ($e -match "^$_=[0-9a-f]{32}$") }
+          if ($faltan) { throw "Faltan contraseñas: $faltan" }
+          if (-not (Test-Path servidor\jitsi\docker-compose.yml)) { throw 'No se descargó docker-compose.yml' }
+          'OK'

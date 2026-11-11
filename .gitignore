@@ -7,3 +7,4 @@ build/
 Thumbs.db
 .env
 config.json
+servidor/jitsi/
