@@ -37,9 +37,10 @@ Requisitos en Windows:
 2. Visual Studio Build Tools con la carga «Desarrollo para el escritorio con C++» (para compilar el módulo NDI)
 3. [NDI Tools](https://ndi.video/tools/) (incluye el runtime de NDI y Studio Monitor para revisar)
 
-Instalar y correr:
+Instalar y correr (en una carpeta **sin espacios** en la ruta, por ejemplo `C:\dev`: con Node 24 o más nuevo, un espacio como en `C:\Users\Mi PC` rompe la compilación del módulo NDI):
 
 ```bash
+cd C:\dev
 git clone https://github.com/loquellega/jitsi-ndi.git
 cd jitsi-ndi
 npm install          # descarga el NDI SDK y compila el módulo
