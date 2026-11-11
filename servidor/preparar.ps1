@@ -30,7 +30,7 @@ if ($SinDocker) { Write-Host '(sin revisar Docker)' }
 elseif (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
   throw 'No encuentro Docker. Instala Docker Desktop (https://www.docker.com/products/docker-desktop/), ábrelo y vuelve a correr este script.'
 }
-if (-not $SinDocker) { docker info *> $null }
+if (-not $SinDocker) { cmd /c 'docker info >nul 2>&1' }
 if (-not $SinDocker -and $LASTEXITCODE -ne 0) { throw 'Docker está instalado pero no está corriendo. Abre Docker Desktop, espera a que diga "Engine running" y vuelve a intentar.' }
 
 # 2. IP de esta PC en la red local
