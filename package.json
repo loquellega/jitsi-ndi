@@ -1,0 +1,22 @@
+{
+  "name": "jitsi-ndi",
+  "version": "0.1.0",
+  "description": "Reunión en Jitsi con una salida NDI por participante para TCRV (Teatro de Creación Remota en Vivo).",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "author": "Héctor Cruz Juárez (https://hectorcruz.com.mx)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/loquellega/jitsi-ndi.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "prueba": "node prueba/senales-prueba.js",
+    "prueba:verificar": "node prueba/senales-prueba.js --segundos 8 --verificar"
+  },
+  "dependencies": {
+    "@stagetimerio/grandiose": "^0.2.1"
+  }
+}

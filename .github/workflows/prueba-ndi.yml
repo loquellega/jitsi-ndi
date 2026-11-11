@@ -1,0 +1,27 @@
+name: Prueba NDI
+
+# Compila el módulo NDI y publica las 8 señales de prueba en una máquina Windows
+# (y en macOS) de GitHub, para confirmar que todo instala y transmite.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  prueba:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar dependencias (descarga el NDI SDK y compila)
+        run: npm install
+      - name: Publicar y verificar 8 señales NDI
+        run: npm run prueba:verificar
