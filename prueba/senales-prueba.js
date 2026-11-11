@@ -182,11 +182,19 @@ async function principal () {
     const primera = propias.find((f) => f.name.endsWith(`${op.prefijo} 1)`)) || propias[0]
     if (primera) {
       const receptor = await grandiose.receive({ source: primera, colorFormat: grandiose.COLOR_FORMAT_BGRX_BGRA })
-      try {
-        const cuadro = await receptor.video(5000)
+      // Al conectar, NDI manda primero metadatos o cambios de estado: se ignoran hasta que llega video.
+      let cuadro = null
+      const limite = Date.now() + 8000
+      while (!cuadro && Date.now() < limite) {
+        try {
+          const d = await receptor.data({}, 2000)
+          if (d && d.type === 'video') cuadro = d
+        } catch (e) { /* tiempo de espera sin datos: se reintenta */ }
+      }
+      if (cuadro) {
         console.log(`  ✓ Cuadro recibido de "${primera.name}": ${cuadro.xres}×${cuadro.yres}`)
-      } catch (e) {
-        console.log(`  ✗ No llegó ningún cuadro de "${primera.name}": ${e.message}`)
+      } else {
+        console.log(`  ✗ No llegó ningún cuadro de video de "${primera.name}"`)
         codigo = 1
       }
     } else {
