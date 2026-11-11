@@ -23,7 +23,7 @@ Reemplaza la salida NDI por participante que antes daba Skype, con software libr
 | Paso | Qué | Estado |
 |---|---|---|
 | 1 | Prueba NDI desde Node: 8 señales hacia TouchDesigner | **v0.1 ✓** |
-| 2 | Servidor Jitsi propio (docker-jitsi-meet), máximo 360p | pendiente |
+| 2 | Servidor Jitsi propio (docker-jitsi-meet), máximo 360p | **v0.2: local ✓** |
 | 3 | App Electron con lib-jitsi-meet que entra a la sala sin cámara ni micrófono | pendiente |
 | 4 | Una salida NDI por participante, con nombre fijo por persona | pendiente |
 | 5 | Prueba con 8 teléfonos reales, empaquetado `.exe` | pendiente |
@@ -57,6 +57,18 @@ npm run prueba:verificar   # prueba automática: publica, busca las señales y r
 ```
 
 Si Windows pregunta por el firewall la primera vez, permite el acceso en redes privadas: NDI lo necesita.
+
+### Servidor Jitsi local (paso 2)
+
+Requiere [Docker Desktop](https://www.docker.com/products/docker-desktop/) abierto. En una terminal **de administrador**, desde la carpeta del repo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File servidor\preparar.ps1
+cd servidor\jitsi
+docker compose up -d
+```
+
+Abre `https://localhost:8443/tcrv-prueba` en la PC y `https://IP-DE-LA-PC:8443/tcrv-prueba` en los teléfonos (misma Wi-Fi). El certificado es de prueba: acepta el aviso del navegador. Para apagar: `docker compose down`.
 
 ---
 
