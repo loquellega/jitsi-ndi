@@ -17,6 +17,7 @@ param(
   [string]$Ip = '',
   [int]$PuertoHttps = 8443,
   [string]$Sala = 'tcrv-prueba',
+  [int]$MaxPersonas = 15,   # tope de personas en la sala (cuenta al host y a la app NDI)
   [switch]$SinDocker   # solo para pruebas automáticas: prepara la configuración sin revisar Docker
 )
 $ErrorActionPreference = 'Stop'
@@ -97,16 +98,21 @@ Poner 'RESOLUTION_WIDTH' '640'
 Poner 'RESOLUTION_WIDTH_MIN' '320'
 # Que el teléfono entre desde el navegador, sin mandarlo a descargar la app
 Poner 'DISABLE_DEEP_LINKING' 'true'
+# Tope de personas por sala, para que nadie más se cuele durante una función
+Poner 'MAX_PARTICIPANTS' "$MaxPersonas"
 
 [IO.File]::WriteAllText($archivoEnv, $texto, (New-Object Text.UTF8Encoding($false)))
-foreach ($d in 'web','transcripts','prosody\config','prosody\prosody-plugins-custom','jicofo','jvb','jigasi','jibri') {
-  New-Item -ItemType Directory -Force -Path (Join-Path $destino "config\$d") | Out-Null
+foreach ($d in 'web','transcripts','prosody/config','prosody/prosody-plugins-custom','jicofo','jvb','jigasi','jibri') {
+  New-Item -ItemType Directory -Force -Path (Join-Path $destino "config/$d") | Out-Null
 }
-Write-Host 'Archivo .env listo.'
+Write-Host "Archivo .env listo (máximo $MaxPersonas personas por sala)."
 
 # 5. Firewall (necesita PowerShell como administrador)
-$admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if ($admin) {
+$admin = $false
+try { $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) } catch { }
+if ($SinDocker -and -not $IsWindows -and $PSVersionTable.PSVersion.Major -ge 6) {
+  Write-Host 'Firewall: se omite fuera de Windows.'
+} elseif ($admin) {
   if (-not (Get-NetFirewallRule -DisplayName 'Jitsi TCRV web' -ErrorAction SilentlyContinue)) {
     New-NetFirewallRule -DisplayName 'Jitsi TCRV web' -Direction Inbound -Protocol TCP -LocalPort $PuertoHttps -Action Allow -Profile Private | Out-Null
     New-NetFirewallRule -DisplayName 'Jitsi TCRV video' -Direction Inbound -Protocol UDP -LocalPort 10000 -Action Allow -Profile Private | Out-Null

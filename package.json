@@ -1,6 +1,6 @@
 {
   "name": "jitsi-ndi",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Reunión en Jitsi con una salida NDI por participante para TCRV (Teatro de Creación Remota en Vivo).",
   "private": true,
   "license": "GPL-3.0-only",
@@ -13,11 +13,16 @@
     "node": ">=20"
   },
   "scripts": {
+    "start": "electron .",
     "prueba": "node prueba/senales-prueba.js",
     "prueba:verificar": "node prueba/senales-prueba.js --segundos 8 --verificar"
   },
   "dependencies": {
     "@stagetimerio/grandiose": "^0.2.1",
     "node-gyp": "^13.1.0"
+  },
+  "main": "app/main.js",
+  "devDependencies": {
+    "electron": "^39.0.0"
   }
 }

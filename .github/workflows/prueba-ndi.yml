@@ -42,3 +42,38 @@ jobs:
           if ($faltan) { throw "Faltan contraseñas: $faltan" }
           if (-not (Test-Path servidor\jitsi\docker-compose.yml)) { throw 'No se descargó docker-compose.yml' }
           'OK'
+
+  # Prueba completa: servidor Jitsi en Docker + un participante con cámara de prueba
+  # + la app receptora, que debe publicar su video por NDI con su nombre.
+  receptor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Servidor Jitsi en Docker
+        run: |
+          IP=$(hostname -I | awk '{print $1}')
+          echo "IP=$IP" >> "$GITHUB_ENV"
+          pwsh servidor/preparar.ps1 -SinDocker -Ip "$IP"
+          cd servidor/jitsi
+          docker compose up -d
+          for i in $(seq 1 90); do curl -skf "https://$IP:8443/config.js" >/dev/null && break; sleep 2; done
+          curl -sk "https://$IP:8443/config.js" | grep -E "resolution|disableDeepLinking" | head -3
+      - name: Dependencias (NDI, Electron, Avahi, Playwright)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq avahi-daemon xvfb >/dev/null
+          sudo service avahi-daemon start || true
+          npm install
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium >/dev/null
+      - name: Participante con cámara de prueba + receptor
+        run: |
+          node prueba/participante-falso.js "https://$IP:8443/tcrv-prueba" "Ana" 150 &
+          sleep 15
+          xvfb-run -a npx electron . --no-sandbox --prueba-e2e "servidor=https://$IP:8443" sala=tcrv-prueba segundos=100 esperado=Ana
+      - name: Registros de Jitsi si algo falla
+        if: failure()
+        run: cd servidor/jitsi && docker compose logs --tail 60

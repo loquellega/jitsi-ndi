@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>jitsi-ndi</title>
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <header class="barra">
+    <span class="titulo">jitsi-ndi</span>
+    <span id="estado" class="estado" role="status">desconectado</span>
+    <span class="espacio"></span>
+    <span id="resumen" class="lectura"></span>
+    <button id="btnInfo" class="mini" title="Acerca de (i)" aria-label="Acerca de">i</button>
+  </header>
+
+  <form id="panel" class="panel" autocomplete="off">
+    <label>servidor<input id="servidor" type="url" spellcheck="false" placeholder="https://192.168.1.183:8443" required></label>
+    <label>sala<input id="sala" spellcheck="false" placeholder="tcrv-prueba" required></label>
+    <label>nombre en la sala<input id="nombre" spellcheck="false" placeholder="NDI"></label>
+    <label>prefijo NDI<input id="prefijo" spellcheck="false" placeholder="TCRV"></label>
+    <label>calidad
+      <select id="altura">
+        <option value="180">180p</option>
+        <option value="360" selected>360p</option>
+        <option value="720">720p</option>
+      </select>
+    </label>
+    <button id="btnConectar" class="principal" type="submit" aria-pressed="false">conectar</button>
+  </form>
+
+  <main id="rejilla" class="rejilla" aria-live="polite">
+    <p id="vacio" class="vacio">Conéctate a la sala. Cada persona con cámara aparecerá aquí y saldrá por NDI con su nombre.</p>
+  </main>
+
+  <footer class="pie">
+    <span id="ndiInfo" class="lectura"></span>
+    <span class="espacio"></span>
+    <span class="tenue">h oculta los controles</span>
+  </footer>
+
+  <div id="acerca" class="ventana acerca" hidden>
+    <div class="barra"><span class="titulo">acerca de</span><span class="espacio"></span><button id="btnCerrarInfo" class="mini" aria-label="Cerrar">×</button></div>
+    <div class="cuerpo">
+      <p><strong>jitsi-ndi</strong> <span id="version"></span></p>
+      <p class="tenue">Recibe la cámara de cada participante de una reunión en Jitsi y la publica como una señal NDI separada, para el mixer TCRV en TouchDesigner.</p>
+      <p>Diseño, investigación y desarrollo: Héctor Cruz Juárez — https://hectorcruz.com.mx<br>Colección Alchemy of Meaning.</p>
+    </div>
+  </div>
+  <button id="btnMostrar" class="recuperar" hidden aria-label="Mostrar controles">▪</button>
+
+  <script src="receptor.js"></script>
+</body>
+</html>
