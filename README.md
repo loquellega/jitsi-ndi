@@ -68,7 +68,7 @@ cd servidor\jitsi
 docker compose up -d
 ```
 
-Abre `https://localhost:8443/tcrv-prueba` en la PC y `https://IP-DE-LA-PC:8443/tcrv-prueba` en los teléfonos (misma Wi-Fi). El certificado es de prueba: acepta el aviso del navegador. Para apagar: `docker compose down`.
+Abre `https://IP-DE-LA-PC:8443/tcrv-prueba` tanto en la PC como en los teléfonos (misma Wi-Fi); con `localhost` la reunión se desconecta. El certificado es de prueba: acepta el aviso del navegador. Para apagar: `docker compose down`.
 
 ---
 

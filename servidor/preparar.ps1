@@ -123,7 +123,7 @@ Write-Host "`n== Siguiente paso ==" -ForegroundColor Cyan
 Write-Host "  cd `"$destino`""
 Write-Host '  docker compose up -d'
 Write-Host "`nLuego abre:"
-Write-Host "  En esta PC:      https://localhost:$PuertoHttps/$Sala"
-Write-Host "  En los teléfonos: https://${Ip}:$PuertoHttps/$Sala   (misma red Wi-Fi)"
+Write-Host "  https://${Ip}:$PuertoHttps/$Sala"
+Write-Host "  (la misma dirección en esta PC y en los teléfonos de la misma red Wi-Fi; con localhost la reunión se desconecta)"
 Write-Host "`nEl navegador avisará que el certificado no es seguro: es normal en la prueba local; acepta para continuar."
 Write-Host "Para apagar el servidor: docker compose down (en esa misma carpeta).`n"
