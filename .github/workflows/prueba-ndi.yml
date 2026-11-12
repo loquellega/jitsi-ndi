@@ -72,9 +72,16 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null
       - name: Participante con cámara de prueba + receptor
         run: |
-          node prueba/participante-falso.js "https://$IP:8443/tcrv-prueba" "Ana" 150 &
+          xvfb-run -a node prueba/participante-falso.js "https://$IP:8443/tcrv-prueba" "Ana" 150 &
           sleep 15
           xvfb-run -a npx electron . --no-sandbox --prueba-e2e "servidor=https://$IP:8443" sala=tcrv-prueba segundos=100 esperado=Ana
+      - name: Captura del participante de prueba
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: participante-falso
+          path: participante-falso.png
+          if-no-files-found: ignore
       - name: Registros de Jitsi si algo falla
         if: failure()
         run: cd servidor/jitsi && docker compose logs --tail 60
