@@ -19,6 +19,7 @@ async function principal () {
     'config.startWithVideoMuted=false',
     'config.startWithAudioMuted=true'
   ].join('&')
+  pagina.on('console', (m) => { if (m.type() === 'error') console.log('[falso] consola:', m.text().slice(0, 200)) })
   await pagina.goto(`${url}#${hash}`)
   console.log(`[falso] ${nombre} entró a ${url}`)
   await pagina.waitForTimeout(Number(segundos) * 1000)

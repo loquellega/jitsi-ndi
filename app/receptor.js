@@ -8,13 +8,9 @@
 */
 'use strict'
 
-const { ipcRenderer } = require('electron')
-const os = require('os')
-const pkg = require('../package.json')
-
-let grandiose = null
-let errorNdi = null
-try { grandiose = require('@stagetimerio/grandiose') } catch (e) { errorNdi = e }
+// window.puente lo crea preload.js: da acceso al módulo NDI sin exponer Node a la página
+const puente = window.puente || { version: '?', equipo: '?', ndi: { disponible: false, error: 'sin preload' }, salir () {} }
+const ndi = puente.ndi
 
 const $ = (id) => document.getElementById(id)
 const campos = ['servidor', 'sala', 'nombre', 'prefijo', 'altura']
@@ -79,8 +75,8 @@ async function obtenerSalida (nombreBase) {
   let salida = estado.salidas.get(nombre)
   if (!salida) {
     // las señales se conservan aunque la persona salga: si vuelve, TD sigue apuntando a la misma
-    const sender = await grandiose.send({ name: nombre, clockVideo: false, clockAudio: false })
-    salida = { nombre, sender, completo: sender.sourcename(), enUso: false }
+    const senal = await ndi.crear(nombre)
+    salida = { nombre, senal, completo: senal.nombreCompleto, enUso: false }
     estado.salidas.set(nombre, salida)
     log('NDI nueva:', salida.completo)
   }
@@ -162,17 +158,7 @@ function bombear (p) {
       p.ctx.drawImage(v, 0, 0, w, h)
       const img = p.ctx.getImageData(0, 0, w, h)
       p.ocupado = true
-      p.salida.sender.video({
-        xres: w,
-        yres: h,
-        frameRateN: 30000,
-        frameRateD: 1000,
-        fourCC: grandiose.FOURCC_RGBX,
-        pictureAspectRatio: w / h,
-        frameFormatType: grandiose.FORMAT_TYPE_PROGRESSIVE,
-        lineStrideBytes: w * 4,
-        data: Buffer.from(img.data.buffer)
-      }).then(() => { p.cuadros++; p.cuadrosSeg++ })
+      p.salida.senal.enviar(img.data, w, h).then(() => { p.cuadros++; p.cuadrosSeg++ })
         .catch((e) => log('Error al enviar cuadro:', e.message))
         .finally(() => { p.ocupado = false })
       p.res = `${w}×${h}`
@@ -200,7 +186,7 @@ function actualizarResumen () {
 
 // ---------- conexión ----------
 async function conectar () {
-  if (!grandiose) throw new Error('El módulo NDI no cargó: ' + (errorNdi && errorNdi.message))
+  if (!ndi.disponible) throw new Error('El módulo NDI no cargó: ' + ndi.error)
   const servidor = $('servidor').value.trim().replace(/\/+$/, '')
   const sala = $('sala').value.trim().toLowerCase()
   if (!/^https:\/\//.test(servidor)) throw new Error('El servidor debe empezar con https://')
@@ -266,6 +252,8 @@ function unirse (sala, cfg) {
     if (pista.isLocal() || pista.getType() !== 'video') return // el audio no se reproduce ni se envía
     agregarPista(pista).catch((e) => log('Error con la pista:', e.message))
   })
+  conf.on(E.USER_JOINED, (id, u) => log('entró:', u.getDisplayName() || id))
+  conf.on(E.USER_LEFT, (id, u) => log('salió:', (u && u.getDisplayName()) || id))
   conf.on(E.TRACK_REMOVED, (pista) => { if (!pista.isLocal()) quitarPista(pista) })
   conf.setDisplayName($('nombre').value.trim() || 'NDI')
   conf.join()
@@ -311,9 +299,9 @@ function alternarControles (ocultar) {
   $('btnMostrar').hidden = !o
 }
 
-$('version').textContent = 'v' + pkg.version
-$('ndiInfo').innerHTML = grandiose
-  ? `NDI <b>${grandiose.version().replace(/^NDI SDK\s*/, '').split(' ').pop()}</b> · equipo <b>${os.hostname()}</b>`
+$('version').textContent = 'v' + puente.version
+$('ndiInfo').innerHTML = ndi.disponible
+  ? `NDI <b>${String(ndi.version).split(' ').pop()}</b> · equipo <b>${puente.equipo}</b>`
   : 'NDI no disponible: revisa la instalación (npm install)'
 cargar()
 if (sessionStorage.getItem('jn.autoconectar') === '1' || prueba) {
@@ -324,7 +312,7 @@ if (sessionStorage.getItem('jn.autoconectar') === '1' || prueba) {
 // ---------- prueba automática (CI) ----------
 function terminarPrueba (codigo, motivo) {
   log(`RESULTADO ${codigo === 0 ? 'OK' : 'FALLA'}: ${motivo}`)
-  ipcRenderer.send('salir', codigo)
+  puente.salir(codigo)
 }
 if (prueba) {
   const inicio = Date.now()
@@ -335,23 +323,8 @@ if (prueba) {
     if (lista60.length) {
       clearInterval(revisar)
       const p = lista60[0]
-      const finder = await grandiose.find({ showLocalSources: true })
-      let fuente = null
-      for (let t = 0; t < 10 && !fuente; t++) {
-        await finder.wait(1000)
-        fuente = finder.sources().find((f) => f.name === p.salida.completo)
-      }
-      await finder.destroy()
-      if (!fuente) return terminarPrueba(1, `no apareció la señal ${p.salida.completo} en la red`)
-      const rx = await grandiose.receive({ source: fuente, colorFormat: grandiose.COLOR_FORMAT_BGRX_BGRA })
-      const limite = Date.now() + 8000
-      while (Date.now() < limite) {
-        try {
-          const d = await rx.data({}, 2000)
-          if (d && d.type === 'video') return terminarPrueba(0, `"${fuente.name}" llega por NDI a ${d.xres}×${d.yres}`)
-        } catch (e) { /* reintenta */ }
-      }
-      return terminarPrueba(1, 'la señal existe pero no llegó video')
+      const r = await ndi.verificar(p.salida.completo)
+      return terminarPrueba(r.ok ? 0 : 1, r.motivo)
     }
     if (Date.now() - inicio > prueba.segundos * 1000) { clearInterval(revisar); terminarPrueba(1, 'tiempo agotado sin video de participantes') }
   }, 2000)

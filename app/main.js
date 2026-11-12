@@ -55,8 +55,10 @@ function crearVentana () {
     autoHideMenuBar: true,
     show: true,
     webPreferences: {
-      nodeIntegration: true, // el módulo NDI corre en la misma ventana que recibe el video
-      contextIsolation: false,
+      preload: path.join(__dirname, 'preload.js'), // el módulo NDI vive aquí (window.puente)
+      nodeIntegration: false, // la sala corre como navegador normal: lib-jitsi-meet falla si detecta Node
+      contextIsolation: false, // comparte window con el preload, sin copiar cada cuadro
+      sandbox: false,
       webSecurity: false, // carga config.js y lib-jitsi-meet desde tu servidor Jitsi
       backgroundThrottling: false
     }
