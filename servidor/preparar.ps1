@@ -54,8 +54,9 @@ if (Test-Path (Join-Path $destino 'docker-compose.yml')) {
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
   $cab = @{ 'User-Agent' = 'jitsi-ndi' }
   $rel = Invoke-RestMethod 'https://api.github.com/repos/jitsi/docker-jitsi-meet/releases/latest' -Headers $cab
-  $zip = Join-Path $env:TEMP 'docker-jitsi-meet.zip'
-  $tmp = Join-Path $env:TEMP ('djm-' + [guid]::NewGuid().ToString('N'))
+  $temporal = [IO.Path]::GetTempPath()
+  $zip = Join-Path $temporal 'docker-jitsi-meet.zip'
+  $tmp = Join-Path $temporal ('djm-' + [guid]::NewGuid().ToString('N'))
   Invoke-WebRequest $rel.zipball_url -OutFile $zip -Headers $cab -UseBasicParsing
   Expand-Archive $zip $tmp
   Move-Item (Get-ChildItem $tmp -Directory | Select-Object -First 1).FullName $destino
