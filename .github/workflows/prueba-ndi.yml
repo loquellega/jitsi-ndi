@@ -59,6 +59,7 @@ jobs:
           echo "IP=$IP" >> "$GITHUB_ENV"
           pwsh servidor/preparar.ps1 -SinDocker -Ip "$IP"
           cd servidor/jitsi
+          mkdir -p config/storage/prosody config/storage/web && chmod -R 777 config   # en Linux los contenedores corren como uid 1000
           docker compose up -d
           for i in $(seq 1 90); do curl -skf "https://$IP:8443/config.js" >/dev/null && break; sleep 2; done
           curl -sk "https://$IP:8443/config.js" | grep -E "resolution|disableDeepLinking" | head -3
