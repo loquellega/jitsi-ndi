@@ -1,39 +1,46 @@
 /*
   jitsi-ndi · participante falso para pruebas automáticas
-  Entra a una sala de Jitsi con la cámara de prueba de Chromium.
-  Uso: node prueba/participante-falso.js https://IP:8443/sala Nombre [segundos]
+  Entra a una sala de Jitsi con la cámara de prueba de Chromium, usando
+  lib-jitsi-meet directamente (sin la interfaz web de Jitsi).
+  Uso: node prueba/participante-falso.js https://IP:8443 sala Nombre [segundos]
 */
 'use strict'
 const { chromium } = require('playwright')
 
 async function principal () {
-  const [url, nombre = 'Ana', segundos = '120'] = process.argv.slice(2)
+  const [base, sala = 'tcrv-prueba', nombre = 'Ana', segundos = '120'] = process.argv.slice(2)
   const navegador = await chromium.launch({
-    headless: !process.env.DISPLAY, // con pantalla virtual (xvfb) se comporta como un navegador normal
+    headless: !process.env.DISPLAY,
     args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--ignore-certificate-errors']
   })
   const contexto = await navegador.newContext({ ignoreHTTPSErrors: true, permissions: ['camera', 'microphone'] })
   const pagina = await contexto.newPage()
-  const hash = [
-    `userInfo.displayName=${encodeURIComponent(JSON.stringify(nombre))}`,
-    'config.prejoinConfig.enabled=false',
-    'config.startWithVideoMuted=false',
-    'config.startWithAudioMuted=true'
-  ].join('&')
-  pagina.on('console', (m) => {
-    const t = m.text()
-    if (m.type() === 'error' || /gum|getUserMedia|camera|video track|NotAllowed|NotFound/i.test(t)) console.log('[falso] consola:', t.slice(0, 220))
-  })
-  await pagina.goto(`${url}#${hash}`)
-  console.log(`[falso] ${nombre} entró a ${url}`)
-  await pagina.waitForTimeout(20000)
-  try {
-    const pistas = await pagina.evaluate(() => (window.APP && APP.store.getState()['features/base/tracks'] || [])
-      .filter((t) => t.local).map((t) => `${t.mediaType} muted=${t.muted}`))
-    console.log('[falso] pistas locales:', JSON.stringify(pistas))
-    await pagina.screenshot({ path: 'participante-falso.png' })
-  } catch (e) { console.log('[falso] no se pudo revisar:', e.message) }
-  await pagina.waitForTimeout(Math.max(0, Number(segundos) * 1000 - 20000))
+  pagina.on('console', (m) => { if (m.type() === 'error') console.log('[falso] consola:', m.text().slice(0, 220)) })
+
+  await pagina.goto(`${base}/config.js`) // misma procedencia que el servidor
+  await pagina.addScriptTag({ url: `${base}/config.js` })
+  await pagina.addScriptTag({ url: `${base}/libs/lib-jitsi-meet.min.js` })
+  const pistas = await pagina.evaluate(async ({ sala, nombre }) => {
+    const J = window.JitsiMeetJS
+    J.init({})
+    J.setLogLevel(J.logLevels.ERROR)
+    const locales = await J.createLocalTracks({ devices: ['video'], resolution: 360 })
+    const cfg = window.config
+    const conexion = new J.JitsiConnection(null, null, { hosts: cfg.hosts, serviceUrl: `${cfg.websocket}?room=${sala}` })
+    await new Promise((resolve, reject) => {
+      conexion.addEventListener(J.events.connection.CONNECTION_ESTABLISHED, resolve)
+      conexion.addEventListener(J.events.connection.CONNECTION_FAILED, reject)
+      conexion.connect()
+    })
+    const conf = conexion.initJitsiConference(sala, { ...cfg, p2p: { enabled: false } })
+    conf.setDisplayName(nombre)
+    for (const t of locales) await conf.addTrack(t)
+    conf.join()
+    window._conf = conf
+    return locales.map((t) => t.getType())
+  }, { sala, nombre })
+  console.log(`[falso] ${nombre} entró a ${base}/${sala} con pistas: ${pistas.join(', ')}`)
+  await pagina.waitForTimeout(Number(segundos) * 1000)
   await navegador.close()
 }
 principal().catch((e) => { console.error('[falso] error:', e); process.exit(1) })
