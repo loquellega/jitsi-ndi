@@ -40,7 +40,20 @@ async function principal () {
     return locales.map((t) => t.getType())
   }, { sala, nombre })
   console.log(`[falso] ${nombre} entró a ${base}/${sala} con pistas: ${pistas.join(', ')}`)
-  await pagina.waitForTimeout(Number(segundos) * 1000)
+  // como un iPhone que se bloquea y vuelve: a los N segundos cambia su cámara por una nueva
+  const reemplazo = Number(process.env.REEMPLAZAR_A || 0)
+  if (reemplazo) {
+    await pagina.waitForTimeout(reemplazo * 1000)
+    await pagina.evaluate(async () => {
+      const J = window.JitsiMeetJS
+      const vieja = window._conf.getLocalVideoTrack()
+      const [nueva] = await J.createLocalTracks({ devices: ['video'], resolution: 360 })
+      await window._conf.replaceTrack(vieja, nueva)
+      await vieja.dispose()
+    })
+    console.log('[falso] cámara reemplazada')
+  }
+  await pagina.waitForTimeout(Math.max(0, Number(segundos) - reemplazo) * 1000)
   await navegador.close()
 }
 principal().catch((e) => { console.error('[falso] error:', e); process.exit(1) })

@@ -68,5 +68,6 @@ window.puente = {
       return { ok: false, motivo: 'la señal existe pero no llegó video' }
     }
   },
-  salir (codigo) { ipcRenderer.send('salir', codigo) }
+  salir (codigo) { ipcRenderer.send('salir', codigo) },
+  ventana (accion) { ipcRenderer.send('ventana', accion) }
 }

@@ -10,12 +10,14 @@
 'use strict'
 
 const path = require('path')
-const { app, BrowserWindow, session, ipcMain } = require('electron')
+const { app, BrowserWindow, session, ipcMain, powerSaveBlocker } = require('electron')
 
 // Video sin gesto del usuario y sin bajar el ritmo cuando la ventana no tiene foco
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
 app.commandLine.appendSwitch('disable-renderer-backgrounding')
 app.commandLine.appendSwitch('disable-background-timer-throttling')
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion')
 
 // Modo de prueba automática: --prueba-e2e servidor=https://… sala=… segundos=60
 // Autoprueba del módulo NDI ya empaquetado: jitsi-ndi.exe --autoprueba
@@ -74,6 +76,15 @@ function crearVentana () {
 }
 
 ipcMain.on('salir', (_e, codigo) => { app.exit(Number(codigo) || 0) })
+ipcMain.on('ventana', (e, accion) => {
+  const v = BrowserWindow.fromWebContents(e.sender)
+  if (!v) return
+  if (accion === 'ocultar') v.hide()
+  if (accion === 'mostrar') v.show()
+})
 
-app.whenReady().then(crearVentana)
+app.whenReady().then(() => {
+  powerSaveBlocker.start('prevent-app-suspension') // que Windows no duerma la app a media función
+  crearVentana()
+})
 app.on('window-all-closed', () => app.quit())
