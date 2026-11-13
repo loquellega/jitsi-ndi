@@ -116,3 +116,20 @@ jobs:
           V=v$(node -p "require('./package.json').version")
           gh release view "$V" >/dev/null 2>&1 || gh release create "$V" --title "jitsi-ndi $V" --notes "Ejecutable para Windows (portable y zip). Requiere NDI Tools o el NDI Runtime instalado."
           gh release upload "$V" dist/*.exe dist/*.zip --clobber
+
+  # El instalador para servidores en internet, en una máquina ARM como las de Oracle.
+  # Sin dominio real Let's Encrypt no puede dar certificado; se revisa todo lo demás.
+  vps-arm:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Correr instalar-vps.sh
+        run: sudo bash servidor/instalar-vps.sh prueba.invalid prueba@example.com
+      - name: Revisar contenedores y configuración
+        run: |
+          cd /opt/jitsi-ndi/jitsi
+          sudo docker compose ps
+          test "$(sudo docker compose ps --status running -q | wc -l)" -ge 4
+          curl -sk https://localhost/config.js | grep -E "config.resolution = 360"
+          grep -E "^MAX_PARTICIPANTS=15$" .env
