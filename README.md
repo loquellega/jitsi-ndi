@@ -30,7 +30,7 @@ Reemplaza la salida NDI por participante que antes daba Skype, con software libr
 | 4 | Una salida NDI por participante, con nombre fijo por persona | **v0.3 ✓** |
 | 5 | Empaquetado `.exe` con autoprueba de NDI | **v0.4 ✓** |
 | 5b | Prueba con 8 teléfonos reales | pendiente |
-| 7 | Servidor con dominio y certificado (Let's Encrypt) | pendiente |
+| 7 | Servidor con dominio y certificado (Let's Encrypt) | **v0.5: instalador ✓** |
 | 6 | Versión para macOS | pendiente |
 
 ### Prueba NDI (paso 1)
@@ -75,6 +75,21 @@ docker compose up -d
 Abre `https://IP-DE-LA-PC:8443/tcrv-prueba` tanto en la PC como en los teléfonos (misma Wi-Fi); con `localhost` la reunión se desconecta. El certificado es de prueba: acepta el aviso del navegador. Para apagar: `docker compose down`.
 
 También fija un tope de 15 personas por sala (cuenta al host y a la app). Para cambiarlo: `preparar.ps1 -MaxPersonas 20` y `docker compose up -d` de nuevo.
+
+### Servidor en internet (paso 7)
+
+Para que entren personas desde otras ciudades: un servidor con Ubuntu 22.04/24.04 (Oracle Cloud gratis en Querétaro/Monterrey, Vultr, K2WebHost…), un subdominio y un comando.
+
+1. **DNS:** registro `A` del subdominio (p. ej. `tcrv`) hacia la IP pública del servidor.
+2. **Puertos en el panel del proveedor:** entrada `TCP 80`, `TCP 443` y `UDP 10000` desde `0.0.0.0/0`. En Oracle: *Networking → Virtual Cloud Networks → la red → Security Lists → Default → Add Ingress Rules*.
+3. **En el servidor** (por SSH):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/loquellega/jitsi-ndi/main/servidor/instalar-vps.sh \
+  | sudo bash -s -- tcrv.hectorcruz.com.mx tu@correo.com
+```
+
+Instala Docker y Jitsi, pide el certificado a Let's Encrypt, abre el firewall del sistema y aplica 360p y el tope de 15 personas. Funciona en x86 y ARM (probado en GitHub con una máquina ARM). Si el DNS aún no apuntaba, vuelve a correr el mismo comando. Luego, en la app: servidor `https://tcrv.hectorcruz.com.mx`.
 
 ### App receptora (pasos 3 y 4)
 
