@@ -78,3 +78,41 @@ jobs:
       - name: Registros de Jitsi si algo falla
         if: failure()
         run: cd servidor/jitsi && docker compose logs --tail 60
+
+  # Ejecutable para Windows: se compila, se prueba el módulo NDI ya empaquetado
+  # y se publica en Releases con el número de versión de package.json.
+  instalador:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Compilar el ejecutable
+        run: |
+          npm install
+          npm run dist
+      - name: Autoprueba del ejecutable (NDI empaquetado)
+        shell: powershell
+        run: |
+          $p = Start-Process .\dist\win-unpacked\jitsi-ndi.exe -ArgumentList '--autoprueba' -PassThru
+          if (-not $p.WaitForExit(120000)) { Stop-Process $p -Force; throw 'La autoprueba no terminó a tiempo' }
+          if ($p.ExitCode -ne 0) { throw "La autoprueba falló (código $($p.ExitCode))" }
+          'Autoprueba OK: el módulo NDI funciona dentro del ejecutable'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jitsi-ndi-windows
+          path: |
+            dist/*.exe
+            dist/*.zip
+      - name: Publicar en Releases
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=v$(node -p "require('./package.json').version")
+          gh release view "$V" >/dev/null 2>&1 || gh release create "$V" --title "jitsi-ndi $V" --notes "Ejecutable para Windows (portable y zip). Requiere NDI Tools o el NDI Runtime instalado."
+          gh release upload "$V" dist/*.exe dist/*.zip --clobber

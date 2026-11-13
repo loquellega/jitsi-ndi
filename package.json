@@ -1,6 +1,6 @@
 {
   "name": "jitsi-ndi",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Reunión en Jitsi con una salida NDI por participante para TCRV (Teatro de Creación Remota en Vivo).",
   "private": true,
   "license": "GPL-3.0-only",
@@ -15,14 +15,48 @@
   "scripts": {
     "start": "electron .",
     "prueba": "node prueba/senales-prueba.js",
-    "prueba:verificar": "node prueba/senales-prueba.js --segundos 8 --verificar"
+    "prueba:verificar": "node prueba/senales-prueba.js --segundos 8 --verificar",
+    "dist": "electron-builder --win --publish never"
   },
   "dependencies": {
-    "@stagetimerio/grandiose": "^0.2.1",
-    "node-gyp": "^13.1.0"
+    "@stagetimerio/grandiose": "^0.2.1"
   },
   "main": "app/main.js",
   "devDependencies": {
-    "electron": "^39.0.0"
+    "electron": "39.8.10",
+    "electron-builder": "^26.0.0",
+    "node-gyp": "^13.1.0"
+  },
+  "build": {
+    "appId": "mx.com.hectorcruz.jitsi-ndi",
+    "productName": "jitsi-ndi",
+    "copyright": "Héctor Cruz Juárez — Colección Alchemy of Meaning",
+    "files": [
+      "app/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/@stagetimerio/grandiose/**"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "jitsi-ndi-${version}-windows-${arch}.${ext}"
+    }
   }
 }

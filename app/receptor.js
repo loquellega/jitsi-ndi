@@ -329,3 +329,17 @@ if (prueba) {
     if (Date.now() - inicio > prueba.segundos * 1000) { clearInterval(revisar); terminarPrueba(1, 'tiempo agotado sin video de participantes') }
   }, 2000)
 }
+
+// ---------- autoprueba del módulo NDI (jitsi-ndi.exe --autoprueba) ----------
+if (params.has('autoprueba')) {
+  (async () => {
+    if (!ndi.disponible) return terminarPrueba(1, 'el módulo NDI no cargó: ' + ndi.error)
+    const s = await ndi.crear('TCRV autoprueba')
+    const w = 640; const h = 360
+    const datos = new Uint8Array(w * h * 4).fill(128)
+    const reloj = setInterval(() => s.enviar(datos, w, h).catch(() => {}), 33)
+    const r = await ndi.verificar(s.nombreCompleto, 15)
+    clearInterval(reloj)
+    terminarPrueba(r.ok ? 0 : 1, r.motivo)
+  })().catch((e) => terminarPrueba(1, e.message))
+}

@@ -18,9 +18,10 @@ app.commandLine.appendSwitch('disable-renderer-backgrounding')
 app.commandLine.appendSwitch('disable-background-timer-throttling')
 
 // Modo de prueba automática: --prueba-e2e servidor=https://… sala=… segundos=60
+// Autoprueba del módulo NDI ya empaquetado: jitsi-ndi.exe --autoprueba
 const argsPrueba = process.argv.includes('--prueba-e2e')
   ? Object.fromEntries(process.argv.filter((a) => a.includes('=')).map((a) => a.split(/=(.*)/s).slice(0, 2)))
-  : null
+  : process.argv.includes('--autoprueba') ? { autoprueba: '1' } : null
 
 // Certificados de prueba: solo se aceptan para la red local (IP privadas, localhost y .local).
 function esLocal (host) {
