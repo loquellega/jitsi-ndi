@@ -90,7 +90,7 @@ function crearFicha (pista, nombrePersona) {
   ficha.className = 'ficha'
   ficha.innerHTML = `
     <div class="imagen"><video autoplay muted playsinline></video><span class="esq ar">—</span></div>
-    <div class="datos"><span class="nombre"></span><span class="espacio"></span><span class="lectura fps">0 fps</span></div>
+    <div class="datos"><span class="nombre"></span><span class="lectura fps">0 fps</span></div>
     <div class="medidor"><i></i></div>`
   $('vacio').hidden = true
   $('rejilla').appendChild(ficha)
@@ -123,7 +123,7 @@ async function agregarPista (pista) {
   pista.attach(p.video)
   try {
     p.salida = await obtenerSalida(nombrePersona)
-    p.el.querySelector('.nombre').textContent = p.salida.completo
+    p.el.querySelector('.nombre').textContent = p.salida.nombre
     p.el.title = `Señal NDI: ${p.salida.completo}`
   } catch (e) {
     p.el.querySelector('.nombre').textContent = `${nombrePersona} · sin NDI`

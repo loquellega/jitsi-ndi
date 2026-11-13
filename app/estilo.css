@@ -40,7 +40,8 @@ button.mini{height:18px;width:18px;padding:0;font-size:var(--a-size-sm);line-hei
 .ficha .esq{position:absolute;font-size:10px;color:#fff;mix-blend-mode:difference;padding:3px 5px}
 .ficha .esq.ar{top:0;right:0}
 .ficha .datos{display:flex;align-items:center;gap:var(--a-gap);height:var(--a-bar-h);padding:0 8px;border-top:1px solid var(--a-line);background:var(--a-bar)}
-.ficha .nombre{color:var(--a-ink-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ficha .nombre{flex:1;min-width:0;color:var(--a-ink-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ficha .fps{white-space:nowrap}
 .ficha.fuera{opacity:.45}
 .medidor{height:3px;background:var(--a-line);margin:0 8px 6px}
 .medidor i{display:block;height:100%;width:0;background:var(--a-accent);transition:width var(--a-t)}

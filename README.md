@@ -1,8 +1,8 @@
 # jitsi-ndi
 
-**Versión 0.1.0 · Prueba de señales NDI**
+**Versión 0.3.0 · App receptora: una salida NDI por participante**
 
-![Las 8 señales de prueba](docs/capturas/01-senales-prueba.png)
+![La app receptora con seis participantes](docs/capturas/03-receptor-sala.png)
 
 ## Español
 
@@ -24,8 +24,8 @@ Reemplaza la salida NDI por participante que antes daba Skype, con software libr
 |---|---|---|
 | 1 | Prueba NDI desde Node: 8 señales hacia TouchDesigner | **v0.1 ✓** |
 | 2 | Servidor Jitsi propio (docker-jitsi-meet), máximo 360p | **v0.2: local ✓** |
-| 3 | App Electron con lib-jitsi-meet que entra a la sala sin cámara ni micrófono | pendiente |
-| 4 | Una salida NDI por participante, con nombre fijo por persona | pendiente |
+| 3 | App Electron con lib-jitsi-meet que entra a la sala sin cámara ni micrófono | **v0.3 ✓** |
+| 4 | Una salida NDI por participante, con nombre fijo por persona | **v0.3 ✓** |
 | 5 | Prueba con 8 teléfonos reales, empaquetado `.exe` | pendiente |
 | 6 | Versión para macOS | pendiente |
 
@@ -70,6 +70,27 @@ docker compose up -d
 
 Abre `https://IP-DE-LA-PC:8443/tcrv-prueba` tanto en la PC como en los teléfonos (misma Wi-Fi); con `localhost` la reunión se desconecta. El certificado es de prueba: acepta el aviso del navegador. Para apagar: `docker compose down`.
 
+También fija un tope de 15 personas por sala (cuenta al host y a la app). Para cambiarlo: `preparar.ps1 -MaxPersonas 20` y `docker compose up -d` de nuevo.
+
+### App receptora (pasos 3 y 4)
+
+Con el servidor encendido, desde la carpeta del repo:
+
+```
+git pull
+npm install
+npm start
+```
+
+En la ventana escribe la dirección del servidor (`https://IP-DE-LA-PC:8443`), la sala (`tcrv-prueba`) y pulsa **conectar**. La app entra a la sala como «NDI», sin cámara ni micrófono, y cada persona con cámara aparece como una ficha y como una señal NDI:
+
+- **Nombre:** `prefijo + nombre de la persona`, por ejemplo `TU-PC (TCRV Ana)`. Si dos personas usan el mismo nombre, la segunda queda como `TCRV Ana 2`.
+- **Si alguien sale y vuelve** con el mismo nombre, regresa a la misma señal: el NDI In TOP de TouchDesigner no se rompe.
+- **Calidad:** 360p por defecto (también 180p o 720p). Las cámaras verticales salen verticales.
+- **Teclado:** `h` oculta los controles, `i` muestra «acerca de».
+
+La prueba automática de GitHub levanta Jitsi en Docker, mete un participante con cámara de prueba y confirma que su video llega por NDI.
+
 ---
 
 ## English
@@ -97,10 +118,16 @@ npm run prueba
 
 In TouchDesigner, add an **NDI In TOP** and pick `YOUR-PC (TCRV Prueba 1)`, `…2`, and so on. Source 3 is portrait (360×640), like an upright phone.
 
+### Receiver app (steps 3–4)
+
+With the Jitsi server running (`servidor/preparar.ps1`, then `docker compose up -d`), run `npm install` and `npm start`, enter the server address and room, and press **conectar**. Each participant's camera becomes an NDI source named `PREFIX Name` (e.g. `YOUR-PC (TCRV Ana)`), kept stable if they leave and rejoin.
+
 ## Capturas / Screenshots
 
 | | | |
 |---|---|---|
+| ![Receptor en la sala](docs/capturas/03-receptor-sala.png) | ![Receptor al iniciar](docs/capturas/02-receptor-inicio.png) | ![Acerca de](docs/capturas/04-acerca.png) |
+| En la sala, con cámaras simuladas / In the room, simulated cameras | Antes de conectar / Before connecting | Acerca de / About |
 | ![Señales de prueba](docs/capturas/01-senales-prueba.png) | | |
 | Las 8 señales de prueba / The 8 test sources | | |
 
