@@ -1,6 +1,8 @@
 # jitsi-ndi
 
-**Versión 0.3.0 · App receptora: una salida NDI por participante**
+**Versión 0.4.0 · Ejecutable para Windows**
+
+**Descargar:** [Releases](https://github.com/loquellega/jitsi-ndi/releases/latest) → `jitsi-ndi-…-windows-x64.exe` (portable, no se instala; necesita NDI Tools).
 
 ![La app receptora con seis participantes](docs/capturas/03-receptor-sala.png)
 
@@ -26,7 +28,9 @@ Reemplaza la salida NDI por participante que antes daba Skype, con software libr
 | 2 | Servidor Jitsi propio (docker-jitsi-meet), máximo 360p | **v0.2: local ✓** |
 | 3 | App Electron con lib-jitsi-meet que entra a la sala sin cámara ni micrófono | **v0.3 ✓** |
 | 4 | Una salida NDI por participante, con nombre fijo por persona | **v0.3 ✓** |
-| 5 | Prueba con 8 teléfonos reales, empaquetado `.exe` | pendiente |
+| 5 | Empaquetado `.exe` con autoprueba de NDI | **v0.4 ✓** |
+| 5b | Prueba con 8 teléfonos reales | pendiente |
+| 7 | Servidor con dominio y certificado (Let's Encrypt) | pendiente |
 | 6 | Versión para macOS | pendiente |
 
 ### Prueba NDI (paso 1)
