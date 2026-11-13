@@ -103,7 +103,11 @@ poner HTTP_PORT 80
 poner HTTPS_PORT 443
 poner PUBLIC_URL "https://$DOMINIO"
 poner JVB_ADVERTISE_IPS "$IP_PUBLICA"
-poner ENABLE_LETSENCRYPT 1
+if [ "${SIN_LETSENCRYPT:-0}" = 1 ]; then
+  poner ENABLE_LETSENCRYPT 0   # solo para pruebas: certificado autofirmado
+else
+  poner ENABLE_LETSENCRYPT 1
+fi
 poner LETSENCRYPT_DOMAIN "$DOMINIO"
 poner LETSENCRYPT_EMAIL "$CORREO"
 poner ENABLE_HTTP_REDIRECT 1
@@ -127,7 +131,9 @@ docker compose up -d
 
 printf '\nEsperando a que responda https://%s ' "$DOMINIO"
 for _ in $(seq 1 60); do
-  if curl -fsS "https://$DOMINIO/config.js" >/dev/null 2>&1; then OK=1; break; fi
+  if [ "${SIN_LETSENCRYPT:-0}" = 1 ]; then
+    curl -fsSk https://localhost/config.js >/dev/null 2>&1 && { OK=1; break; }
+  elif curl -fsS "https://$DOMINIO/config.js" >/dev/null 2>&1; then OK=1; break; fi
   printf '.'; sleep 5
 done
 echo

@@ -125,11 +125,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Correr instalar-vps.sh
-        run: sudo bash servidor/instalar-vps.sh prueba.invalid prueba@example.com
+        run: sudo SIN_LETSENCRYPT=1 bash servidor/instalar-vps.sh prueba.invalid prueba@example.com
       - name: Revisar contenedores y configuración
         run: |
           cd /opt/jitsi-ndi/jitsi
           sudo docker compose ps
+          sleep 20
           test "$(sudo docker compose ps --status running -q | wc -l)" -ge 4
           curl -sk https://localhost/config.js | grep -E "config.resolution = 360"
           grep -E "^MAX_PARTICIPANTS=15$" .env
