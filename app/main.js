@@ -10,7 +10,7 @@
 'use strict'
 
 const path = require('path')
-const { app, BrowserWindow, session, ipcMain, powerSaveBlocker } = require('electron')
+const { app, BrowserWindow, session, ipcMain, powerSaveBlocker, shell } = require('electron')
 
 // Video sin gesto del usuario y sin bajar el ritmo cuando la ventana no tiene foco
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
@@ -65,6 +65,11 @@ function crearVentana () {
       webSecurity: false, // carga config.js y lib-jitsi-meet desde tu servidor Jitsi
       backgroundThrottling: false
     }
+  })
+  // los enlaces (p. ej. landscape.com.mx) se abren en el navegador, no dentro de la app
+  ventana.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https:\/\//.test(url)) shell.openExternal(url)
+    return { action: 'deny' }
   })
   ventana.loadFile(path.join(__dirname, 'index.html'), argsPrueba ? { query: argsPrueba } : undefined)
   if (argsPrueba) {

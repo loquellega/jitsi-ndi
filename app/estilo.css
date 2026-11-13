@@ -55,3 +55,8 @@ button.mini{height:18px;width:18px;padding:0;font-size:var(--a-size-sm);line-hei
 
 body.oculto .panel,body.oculto .pie,body.oculto > .barra{display:none}
 .recuperar{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));width:24px;height:24px;padding:0;opacity:.5}
+
+/* la vista previa muestra el encuadre que sale por NDI */
+body[data-encuadre="llenar"] .ficha video{object-fit:cover}
+.acerca a{color:var(--a-ink-strong)}
+.acerca{max-height:calc(100vh - 60px);overflow:auto}

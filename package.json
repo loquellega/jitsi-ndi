@@ -1,6 +1,6 @@
 {
   "name": "jitsi-ndi",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Reunión en Jitsi con una salida NDI por participante para TCRV (Teatro de Creación Remota en Vivo).",
   "private": true,
   "license": "GPL-3.0-only",

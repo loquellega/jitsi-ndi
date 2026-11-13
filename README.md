@@ -1,6 +1,6 @@
 # jitsi-ndi
 
-**Versión 0.4.0 · Ejecutable para Windows**
+**Versión 0.6.0 · Encuadre horizontal fijo**
 
 **Descargar:** [Releases](https://github.com/loquellega/jitsi-ndi/releases/latest) → `jitsi-ndi-…-windows-x64.exe` (portable, no se instala; necesita NDI Tools).
 
@@ -105,7 +105,8 @@ En la ventana escribe la dirección del servidor (`https://IP-DE-LA-PC:8443`), l
 
 - **Nombre:** `prefijo + nombre de la persona`, por ejemplo `TU-PC (TCRV Ana)`. Si dos personas usan el mismo nombre, la segunda queda como `TCRV Ana 2`.
 - **Si alguien sale y vuelve** con el mismo nombre, regresa a la misma señal: el NDI In TOP de TouchDesigner no se rompe.
-- **Calidad:** 360p por defecto (también 180p o 720p). Las cámaras verticales salen verticales.
+- **Calidad:** 360p por defecto (también 180p o 720p).
+- **Encuadre:** el TCRV trabaja en horizontal. Con **horizontal · llenar** (por defecto) cada señal sale siempre en 16:9 al mismo tamaño (640×360 en 360p); si alguien pone su teléfono en vertical, se recorta el centro y el cuadro sigue lleno, sin deformar. **Horizontal · ajustar** muestra la imagen completa con barras negras, y **original** la manda tal como llega. Se puede cambiar en vivo.
 - **Teclado:** `h` oculta los controles, `i` muestra «acerca de».
 
 La prueba automática de GitHub levanta Jitsi en Docker, mete un participante con cámara de prueba y confirma que su video llega por NDI.
@@ -140,6 +141,16 @@ In TouchDesigner, add an **NDI In TOP** and pick `YOUR-PC (TCRV Prueba 1)`, `…
 ### Receiver app (steps 3–4)
 
 With the Jitsi server running (`servidor/preparar.ps1`, then `docker compose up -d`), run `npm install` and `npm start`, enter the server address and room, and press **conectar**. Each participant's camera becomes an NDI source named `PREFIX Name` (e.g. `YOUR-PC (TCRV Ana)`), kept stable if they leave and rejoin.
+
+## TCRV · Landscape Artes Escénicas
+
+jitsi-ndi forma parte de la investigación del **TCRV · Teatro de Creación Remota en Vivo**, de [Landscape Artes Escénicas](https://landscape.com.mx) (Ciudad de México). Creado en 2020, el TCRV es una metodología y una herramienta digital para crear en vivo con un elenco reunido en una videollamada: cada intérprete participa desde su lugar y su propia cámara, y la dirección multimedia edita esas imágenes en tiempo real, con la lógica de la dirección de cámaras de la televisión en directo y el plano secuencia cinematográfico. La metodología fue reconocida con el **World Summit Award 2020**, iniciativa vinculada a la Cumbre Mundial sobre la Sociedad de la Información de las **Naciones Unidas**, y presentada en la **Cuadrienal de Praga 2024**.
+
+Esta app reemplaza la salida NDI por participante que el TCRV obtenía de Skype, con software libre y sin cuentas, manteniendo el principio del método: cualquier persona con un teléfono y conexión a internet puede formar parte de la obra.
+
+Más información: [TCRV · investigación](https://landscape.com.mx/teatro-de-creacion-remota-en-vivo-2022-research/) · [Decálogo y preguntas frecuentes](https://landscape.com.mx/decalogo-faqs-tcrv-teatro-de-creacion-remota-en-vivo-dtcrv-danza-teatro-de-creacion-remota-en-vivo/)
+
+*English:* jitsi-ndi is part of the research behind **TCRV (Live Remote Creation Theater)** by Landscape Artes Escénicas, Mexico City: a method, created in 2020, for making live work with a cast gathered in a video call, each performer from their own place and camera, edited in real time. It received the **World Summit Award 2020**, an initiative linked to the United Nations World Summit on the Information Society, and was presented at the **Prague Quadrennial 2024**.
 
 ## Capturas / Screenshots
 

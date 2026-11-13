@@ -13,7 +13,7 @@ const puente = window.puente || { version: '?', equipo: '?', ndi: { disponible: 
 const ndi = puente.ndi
 
 const $ = (id) => document.getElementById(id)
-const campos = ['servidor', 'sala', 'nombre', 'prefijo', 'altura']
+const campos = ['servidor', 'sala', 'nombre', 'prefijo', 'altura', 'encuadre']
 const params = new URLSearchParams(location.search)
 const prueba = params.has('servidor') ? {
   servidor: params.get('servidor'),
@@ -38,7 +38,7 @@ function guardar () {
   try { for (const c of campos) localStorage.setItem('jn.' + c, $(c).value) } catch (e) { /* sin almacenamiento */ }
 }
 function cargar () {
-  const def = { servidor: '', sala: 'tcrv-prueba', nombre: 'NDI', prefijo: 'TCRV', altura: '360' }
+  const def = { servidor: '', sala: 'tcrv-prueba', nombre: 'NDI', prefijo: 'TCRV', altura: '360', encuadre: 'llenar' }
   for (const c of campos) {
     let v = null
     try { v = localStorage.getItem('jn.' + c) } catch (e) { /* nada */ }
@@ -198,6 +198,7 @@ function bombear (p) {
       if (p.ocupado || gen !== p.gen) { cuadro.close(); continue } // si NDI va atrasado, se salta el cuadro
       p.ocupado = true
       convertir(p, cuadro)
+        .then(({ datos, w, h }) => encuadrar(p, datos, w, h))
         .then(({ datos, w, h }) => p.salida.senal.enviar(datos, w, h).then(() => { p.cuadros++; p.cuadrosSeg++; p.res = `${w}×${h}` }))
         .catch((e) => log('Error con un cuadro de', p.persona + ':', e.message))
         .finally(() => { p.ocupado = false })
@@ -212,7 +213,7 @@ async function convertir (p, cuadro) {
     const h = cuadro.visibleRect.height
     const tam = w * h * 4
     if (!p.buf || p.buf.byteLength !== tam) p.buf = new Uint8Array(tam)
-    await cuadro.copyTo(p.buf, { format: 'RGBX' })
+    await cuadro.copyTo(p.buf, { format: 'RGBA' })
     let rot = Number(cuadro.rotation) || 0
     if (cuadro.rotation === undefined) {
       // navegador sin VideoFrame.rotation: se deduce de la vista previa
@@ -226,6 +227,46 @@ async function convertir (p, cuadro) {
   } finally {
     cuadro.close()
   }
+}
+
+// Encuadre de salida: el TCRV trabaja en horizontal (16:9). Si un teléfono se pone
+// vertical, la señal NDI conserva su tamaño y proporción:
+//  · llenar: recorta el centro y llena todo el cuadro (sin barras, sin deformar)
+//  · ajustar: muestra la imagen completa con barras negras a los lados
+//  · original: manda la imagen tal como llega (puede cambiar de tamaño y orientación)
+async function encuadrar (p, datos, w, h) {
+  const modo = $('encuadre').value
+  if (modo === 'original') return { datos, w, h }
+  const H = Number($('altura').value) || 360
+  const W = Math.round((H * 16) / 9 / 2) * 2
+  if (w === W && h === H) return { datos, w, h }
+  if (!p.lienzoSal) {
+    p.lienzoSal = new OffscreenCanvas(W, H)
+    p.ctxSal = p.lienzoSal.getContext('2d', { willReadFrequently: true, alpha: false })
+  }
+  if (p.lienzoSal.width !== W || p.lienzoSal.height !== H) { p.lienzoSal.width = W; p.lienzoSal.height = H }
+  const ctx = p.ctxSal
+  ctx.imageSmoothingQuality = 'high'
+  const bmp = await createImageBitmap(new ImageData(new Uint8ClampedArray(datos.buffer, datos.byteOffset, w * h * 4), w, h))
+  const A = W / H
+  const a = w / h
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, W, H)
+  if (modo === 'llenar') {
+    let sx = 0; let sy = 0; let sw = w; let sh = h
+    if (a > A) { sw = h * A; sx = (w - sw) / 2 } else { sh = w / A; sy = (h - sh) / 2 }
+    ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, W, H)
+  } else {
+    let dw = W; let dh = H
+    if (a > A) dh = W / a; else dw = H * a
+    ctx.drawImage(bmp, 0, 0, w, h, (W - dw) / 2, (H - dh) / 2, dw, dh)
+  }
+  bmp.close()
+  return { datos: ctx.getImageData(0, 0, W, H).data, w: W, h: H }
+}
+
+function aplicarEncuadreVista () {
+  document.body.dataset.encuadre = $('encuadre').value
 }
 
 // Rota una imagen RGBX en sentido horario (90, 180 o 270 grados).
@@ -257,7 +298,8 @@ function bombearVideo (p, gen) {
       ctx.drawImage(v, 0, 0, w, h)
       const img = ctx.getImageData(0, 0, w, h)
       p.ocupado = true
-      p.salida.senal.enviar(img.data, w, h).then(() => { p.cuadros++; p.cuadrosSeg++; p.res = `${w}×${h}` })
+      encuadrar(p, img.data, w, h)
+        .then((r) => p.salida.senal.enviar(r.datos, r.w, r.h).then(() => { p.cuadros++; p.cuadrosSeg++; p.res = `${r.w}×${r.h}` }))
         .catch((e) => log('Error al enviar cuadro:', e.message))
         .finally(() => { p.ocupado = false })
     }
@@ -381,7 +423,7 @@ function marcarConectado (si) {
   const b = $('btnConectar')
   b.textContent = si ? 'desconectar' : 'conectar'
   b.setAttribute('aria-pressed', String(si))
-  for (const c of campos) $(c).disabled = si
+  for (const c of campos) if (c !== 'encuadre') $(c).disabled = si
   actualizarResumen()
 }
 
@@ -411,6 +453,8 @@ $('ndiInfo').innerHTML = ndi.disponible
   ? `NDI <b>${String(ndi.version).split(' ').pop()}</b> · equipo <b>${puente.equipo}</b>`
   : 'NDI no disponible: revisa la instalación (npm install)'
 cargar()
+aplicarEncuadreVista()
+$('encuadre').addEventListener('change', () => { guardar(); aplicarEncuadreVista() })
 if (sessionStorage.getItem('jn.autoconectar') === '1' || prueba) {
   sessionStorage.removeItem('jn.autoconectar')
   conectar().catch((err) => { ponerEstado(err.message, 'error'); if (prueba) terminarPrueba(1, err.message) })
