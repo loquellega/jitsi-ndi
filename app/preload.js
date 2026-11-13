@@ -43,12 +43,23 @@ window.puente = {
             data: Buffer.from(datos.buffer, datos.byteOffset, datos.byteLength)
           })
         },
+        // audio en float de 32 bits por canal separado (planar), como lo entrega WebRTC
+        enviarAudio (datos, canales, muestras, frecuencia) {
+          return sender.audio({
+            sampleRate: frecuencia,
+            noChannels: canales,
+            noSamples: muestras,
+            channelStrideBytes: muestras * 4,
+            fourCC: grandiose.FOURCC_FLTp,
+            data: Buffer.from(datos.buffer, datos.byteOffset, datos.byteLength)
+          })
+        },
         cerrar () { return sender.destroy() }
       }
     },
 
     // Solo para la prueba automática: busca una señal en la red y recibe un cuadro.
-    async verificar (nombreCompleto, segundos = 10) {
+    async verificar (nombreCompleto, segundos = 10, conAudio = false) {
       const finder = await grandiose.find({ showLocalSources: true })
       let fuente = null
       for (let t = 0; t < segundos && !fuente; t++) {
@@ -58,14 +69,19 @@ window.puente = {
       await finder.destroy()
       if (!fuente) return { ok: false, motivo: `no apareció la señal ${nombreCompleto} en la red` }
       const rx = await grandiose.receive({ source: fuente, colorFormat: grandiose.COLOR_FORMAT_BGRX_BGRA })
-      const limite = Date.now() + 8000
-      while (Date.now() < limite) {
+      const limite = Date.now() + 10000
+      let video = null
+      let audio = null
+      while (Date.now() < limite && !(video && (audio || !conAudio))) {
         try {
-          const d = await rx.data({}, 2000)
-          if (d && d.type === 'video') return { ok: true, motivo: `"${fuente.name}" llega por NDI a ${d.xres}×${d.yres}` }
+          const d = await rx.data({ audioFormat: grandiose.AUDIO_FORMAT_FLOAT_32_SEPARATE }, 2000)
+          if (d && d.type === 'video') video = d
+          if (d && d.type === 'audio') audio = d
         } catch (e) { /* reintenta */ }
       }
-      return { ok: false, motivo: 'la señal existe pero no llegó video' }
+      if (!video) return { ok: false, motivo: 'la señal existe pero no llegó video' }
+      if (conAudio && !audio) return { ok: false, motivo: 'llegó video pero no audio por NDI' }
+      return { ok: true, motivo: `"${fuente.name}" llega por NDI a ${video.xres}×${video.yres}` + (audio ? ` con audio ${audio.sampleRate} Hz, ${audio.channels || audio.noChannels || '?'} canal(es)` : '') }
     }
   },
   salir (codigo) { ipcRenderer.send('salir', codigo) },

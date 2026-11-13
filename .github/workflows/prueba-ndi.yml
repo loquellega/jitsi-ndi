@@ -74,7 +74,7 @@ jobs:
         run: |
           REEMPLAZAR_A=55 xvfb-run -a node prueba/participante-falso.js "https://$IP:8443" tcrv-prueba "Ana" 200 &
           sleep 15
-          xvfb-run -a npx electron . --no-sandbox --prueba-e2e "servidor=https://$IP:8443" sala=tcrv-prueba segundos=150 esperado=Ana reemplazo=1
+          xvfb-run -a npx electron . --no-sandbox --prueba-e2e "servidor=https://$IP:8443" sala=tcrv-prueba segundos=150 esperado=Ana reemplazo=1 audio=1
       - name: Registros de Jitsi si algo falla
         if: failure()
         run: cd servidor/jitsi && docker compose logs --tail 60

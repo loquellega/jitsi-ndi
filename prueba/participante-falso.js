@@ -24,7 +24,7 @@ async function principal () {
     const J = window.JitsiMeetJS
     J.init({})
     J.setLogLevel(J.logLevels.ERROR)
-    const locales = await J.createLocalTracks({ devices: ['video'], resolution: 360 })
+    const locales = await J.createLocalTracks({ devices: ['audio', 'video'], resolution: 360 })
     const cfg = window.config
     const conexion = new J.JitsiConnection(null, null, { hosts: cfg.hosts, serviceUrl: `${cfg.websocket}?room=${sala}` })
     await new Promise((resolve, reject) => {

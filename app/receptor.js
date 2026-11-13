@@ -13,13 +13,15 @@ const puente = window.puente || { version: '?', equipo: '?', ndi: { disponible: 
 const ndi = puente.ndi
 
 const $ = (id) => document.getElementById(id)
-const campos = ['servidor', 'sala', 'nombre', 'prefijo', 'altura', 'encuadre']
+const campos = ['servidor', 'sala', 'nombre', 'prefijo', 'altura', 'encuadre', 'audioDef']
+const enVivo = ['encuadre', 'audioDef'] // se pueden cambiar con la sala abierta
 const params = new URLSearchParams(location.search)
 const prueba = params.has('servidor') ? {
   servidor: params.get('servidor'),
   sala: params.get('sala') || 'tcrv-prueba',
   segundos: Number(params.get('segundos') || 90),
-  esperado: params.get('esperado') || ''
+  esperado: params.get('esperado') || '',
+  audio: params.get('audio') === '1'
 } : null
 
 // ---------- estado ----------
@@ -29,7 +31,8 @@ const estado = {
   conectado: false,
   libDesde: null, // servidor desde el que se cargó lib-jitsi-meet
   salidas: new Map(), // nombre NDI → { sender, enUso }
-  participantes: new Map() // id de pista → ficha
+  participantes: new Map(), // persona:tipo → ficha
+  audios: new Map() // id de persona → pista de audio remota
 }
 
 // ---------- utilidades ----------
@@ -38,13 +41,13 @@ function guardar () {
   try { for (const c of campos) localStorage.setItem('jn.' + c, $(c).value) } catch (e) { /* sin almacenamiento */ }
 }
 function cargar () {
-  const def = { servidor: '', sala: 'tcrv-prueba', nombre: 'NDI', prefijo: 'TCRV', altura: '360', encuadre: 'llenar' }
+  const def = { servidor: '', sala: 'tcrv-prueba', nombre: 'NDI', prefijo: 'TCRV', altura: '360', encuadre: 'llenar', audioDef: 'no' }
   for (const c of campos) {
     let v = null
     try { v = localStorage.getItem('jn.' + c) } catch (e) { /* nada */ }
     $(c).value = v !== null ? v : def[c]
   }
-  if (prueba) { $('servidor').value = prueba.servidor; $('sala').value = prueba.sala }
+  if (prueba) { $('servidor').value = prueba.servidor; $('sala').value = prueba.sala; $('audioDef').value = prueba.audio ? 'si' : 'no' }
 }
 function ponerEstado (texto, tipo = '') {
   const el = $('estado')
@@ -92,7 +95,7 @@ function crearFicha (clave, nombrePersona) {
   ficha.className = 'ficha'
   ficha.innerHTML = `
     <div class="imagen"><video autoplay muted playsinline></video><span class="esq ar">—</span></div>
-    <div class="datos"><span class="nombre"></span><span class="lectura fps">0 fps</span></div>
+    <div class="datos"><span class="nombre"></span><span class="lectura fps">0 fps</span><button class="mini btnAudio" type="button" aria-pressed="false">♪</button></div>
     <div class="medidor"><i></i></div>`
   $('vacio').hidden = true
   $('rejilla').appendChild(ficha)
@@ -117,6 +120,12 @@ function crearFicha (clave, nombrePersona) {
     bufRot: null
   }
   ficha.querySelector('.nombre').textContent = nombrePersona
+  p.audioOn = $('audioDef').value === 'si' && !clave.endsWith(':desktop')
+  const b = ficha.querySelector('.btnAudio')
+  b.title = t('audioFicha')
+  b.hidden = clave.endsWith(':desktop')
+  b.addEventListener('click', () => ponerAudio(p, !p.audioOn))
+  b.setAttribute('aria-pressed', String(p.audioOn))
   return p
 }
 
@@ -136,8 +145,8 @@ async function agregarPista (pista) {
     return
   }
   const participante = estado.conferencia.getParticipantById(id)
-  let nombrePersona = limpiarNombre(participante && participante.getDisplayName()) || `Participante ${estado.participantes.size + 1}`
-  if (clave.endsWith(':desktop')) nombrePersona += ' pantalla'
+  let nombrePersona = limpiarNombre(participante && participante.getDisplayName()) || `${t('participante')} ${estado.participantes.size + 1}`
+  if (clave.endsWith(':desktop')) nombrePersona += ' ' + t('pantalla')
   p = crearFicha(clave, nombrePersona)
   estado.participantes.set(clave, p)
   try {
@@ -145,11 +154,12 @@ async function agregarPista (pista) {
     p.el.querySelector('.nombre').textContent = p.salida.nombre
     p.el.title = `Señal NDI: ${p.salida.completo}`
   } catch (e) {
-    p.el.querySelector('.nombre').textContent = `${nombrePersona} · sin NDI`
+    p.el.querySelector('.nombre').textContent = `${nombrePersona} · ${t('sinNdi')}`
     log('Error al crear la señal NDI:', e.message)
     return
   }
   usarPista(p, pista)
+  if (p.audioOn) iniciarAudio(p)
   actualizarResumen()
 }
 
@@ -166,6 +176,7 @@ function quitarPista (pista) {
   p.activo = false
   p.gen++
   if (p.lector) p.lector.cancel().catch(() => {})
+  detenerAudio(p)
   try { pista.detach(p.video) } catch (e) { /* ya se fue */ }
   if (p.salida) p.salida.enUso = false
   p.el.remove()
@@ -308,6 +319,78 @@ function bombearVideo (p, gen) {
   v.requestVideoFrameCallback(paso)
 }
 
+// ---------- audio por persona ----------
+// Cada ficha tiene su botón ♪: encendido, la voz de esa persona viaja dentro de su
+// misma señal NDI (en TD: Audio NDI CHOP). Apagado, la app ni lo lee.
+function personaDe (p) { return p.clave.split(':')[0] }
+
+function agregarAudio (pista) {
+  const pid = pista.getParticipantId()
+  estado.audios.set(pid, pista)
+  const p = estado.participantes.get(`${pid}:camera`)
+  if (p && p.audioOn) iniciarAudio(p)
+}
+
+function quitarAudio (pista) {
+  const pid = pista.getParticipantId()
+  if (estado.audios.get(pid) !== pista) return
+  estado.audios.delete(pid)
+  const p = estado.participantes.get(`${pid}:camera`)
+  if (p) detenerAudio(p)
+}
+
+function ponerAudio (p, si) {
+  p.audioOn = si
+  p.el.querySelector('.btnAudio').setAttribute('aria-pressed', String(si))
+  if (si) iniciarAudio(p); else detenerAudio(p)
+}
+
+function iniciarAudio (p) {
+  detenerAudio(p)
+  const pista = estado.audios.get(personaDe(p))
+  const mst = pista && pista.getTrack()
+  if (!mst || !p.salida || typeof window.MediaStreamTrackProcessor !== 'function') return
+  const gen = (p.audioGen || 0) + 1
+  p.audioGen = gen
+  p.audioMst = mst
+  // Chromium solo entrega el audio remoto si algo lo "reproduce": un elemento en silencio
+  p.audioEl = p.audioEl || new Audio()
+  p.audioEl.muted = true
+  p.audioEl.srcObject = new MediaStream([mst])
+  p.audioEl.play().catch(() => {})
+  const lector = new window.MediaStreamTrackProcessor({ track: mst }).readable.getReader()
+  p.audioLector = lector
+  ;(async () => {
+    while (p.activo && p.audioOn && gen === p.audioGen) {
+      let r
+      try { r = await lector.read() } catch (e) { break }
+      if (r.done) break
+      const a = r.value
+      try {
+        const n = a.numberOfFrames
+        const c = a.numberOfChannels
+        if (!p.audioBuf || p.audioBuf.length !== n * c) p.audioBuf = new Float32Array(n * c)
+        for (let canal = 0; canal < c; canal++) {
+          a.copyTo(p.audioBuf.subarray(canal * n, (canal + 1) * n), { planeIndex: canal, format: 'f32-planar' })
+        }
+        await p.salida.senal.enviarAudio(p.audioBuf, c, n, a.sampleRate)
+        p.audioCuadros = (p.audioCuadros || 0) + 1
+      } catch (e) {
+        log('Error con el audio de', p.persona + ':', e.message)
+      } finally {
+        a.close()
+      }
+    }
+  })()
+}
+
+function detenerAudio (p) {
+  p.audioGen = (p.audioGen || 0) + 1
+  if (p.audioLector) { p.audioLector.cancel().catch(() => {}); p.audioLector = null }
+  if (p.audioEl) { p.audioEl.pause(); p.audioEl.srcObject = null }
+  p.audioMst = null
+}
+
 // Cada segundo: lecturas de la ficha y vigilancia. Si la cámara cambió por dentro o
 // lleva 3 s sin cuadros sin estar en pausa, se vuelve a enganchar sola.
 setInterval(() => {
@@ -321,22 +404,26 @@ setInterval(() => {
     if (!p.pista || !p.salida) continue
     const enPausa = p.pista.isMuted && p.pista.isMuted()
     p.segSinCuadros = p.fps === 0 && !enPausa ? p.segSinCuadros + 1 : 0
+    if (p.audioOn) {
+      const pa = estado.audios.get(personaDe(p))
+      if (pa && pa.getTrack() !== p.audioMst) { log('re-enganche de audio:', p.persona); iniciarAudio(p) }
+    }
     if (p.pista.getTrack() !== p.mst) { log('re-enganche (cámara cambió):', p.persona); bombear(p) } else if (p.segSinCuadros >= 3) { log('re-enganche (sin cuadros):', p.persona); bombear(p) }
   }
 }, 1000)
 
 function actualizarResumen () {
   const n = estado.participantes.size
-  $('resumen').innerHTML = estado.conectado ? `<b>${n}</b> ${n === 1 ? 'señal' : 'señales'} NDI` : ''
+  $('resumen').innerHTML = estado.conectado ? `<b>${n}</b> ${n === 1 ? t('senal') : t('senales')} NDI` : ''
 }
 
 // ---------- conexión ----------
 async function conectar () {
-  if (!ndi.disponible) throw new Error('El módulo NDI no cargó: ' + ndi.error)
+  if (!ndi.disponible) throw new Error(t('errNdi') + ndi.error)
   const servidor = $('servidor').value.trim().replace(/\/+$/, '')
   const sala = $('sala').value.trim().toLowerCase()
-  if (!/^https:\/\//.test(servidor)) throw new Error('El servidor debe empezar con https://')
-  if (!sala) throw new Error('Falta el nombre de la sala')
+  if (!/^https:\/\//.test(servidor)) throw new Error(t('errHttps'))
+  if (!sala) throw new Error(t('errSala'))
   guardar()
 
   if (estado.libDesde && estado.libDesde !== servidor) {
@@ -345,7 +432,7 @@ async function conectar () {
     location.reload()
     return
   }
-  ponerEstado('cargando lib-jitsi-meet…')
+  ponerEstado(t('cargandoLib'))
   if (!estado.libDesde) {
     await cargarScript(`${servidor}/config.js?t=${Date.now()}`)
     await cargarScript(`${servidor}/libs/lib-jitsi-meet.min.js`)
@@ -358,7 +445,7 @@ async function conectar () {
   const host = new URL(servidor).host
   const ws = cfg.websocket || `wss://${host}/xmpp-websocket`
 
-  ponerEstado('conectando…')
+  ponerEstado(t('conectando'))
   const conexion = new J.JitsiConnection(null, null, {
     hosts: cfg.hosts,
     serviceUrl: `${ws}?room=${encodeURIComponent(sala)}`,
@@ -367,10 +454,10 @@ async function conectar () {
   estado.conexion = conexion
   conexion.addEventListener(J.events.connection.CONNECTION_ESTABLISHED, () => unirse(sala, cfg))
   conexion.addEventListener(J.events.connection.CONNECTION_FAILED, (err) => {
-    ponerEstado('no se pudo conectar: ' + err, 'error'); estado.conexion = null; marcarConectado(false)
+    ponerEstado(t('noConecta') + err, 'error'); estado.conexion = null; marcarConectado(false)
   })
   conexion.addEventListener(J.events.connection.CONNECTION_DISCONNECTED, () => {
-    if (estado.conectado) ponerEstado('desconectado', ''); marcarConectado(false)
+    if (estado.conectado) ponerEstado(t('desconectado'), ''); marcarConectado(false)
   })
   conexion.connect()
 }
@@ -380,27 +467,31 @@ function unirse (sala, cfg) {
   const E = J.events.conference
   const conf = estado.conexion.initJitsiConference(sala, {
     ...cfg,
-    p2p: { enabled: false }, // todo pasa por el bridge, también con 2 personas
-    startSilent: true
+    p2p: { enabled: false } // todo pasa por el bridge, también con 2 personas
   })
   estado.conferencia = conf
   conf.on(E.CONFERENCE_JOINED, () => {
     marcarConectado(true)
-    ponerEstado(`en la sala «${sala}»`, 'vivo')
+    ponerEstado(t('enSala', { sala }), 'vivo')
     conf.setReceiverConstraints({ lastN: -1, defaultConstraints: { maxHeight: Number($('altura').value) } })
   })
   conf.on(E.CONFERENCE_FAILED, (err) => {
-    ponerEstado('la sala rechazó la conexión: ' + err, 'error')
+    ponerEstado(t('rechazo') + err, 'error')
     try { estado.conexion.disconnect() } catch (e) { /* nada */ }
     estado.conexion = null; estado.conferencia = null; marcarConectado(false)
   })
   conf.on(E.TRACK_ADDED, (pista) => {
-    if (pista.isLocal() || pista.getType() !== 'video') return // el audio no se reproduce ni se envía
+    if (pista.isLocal()) return
+    if (pista.getType() === 'audio') return agregarAudio(pista)
     agregarPista(pista).catch((e) => log('Error con la pista:', e.message))
   })
   conf.on(E.USER_JOINED, (id, u) => log('entró:', u.getDisplayName() || id))
   conf.on(E.USER_LEFT, (id, u) => log('salió:', (u && u.getDisplayName()) || id))
-  conf.on(E.TRACK_REMOVED, (pista) => { if (!pista.isLocal()) quitarPista(pista) })
+  conf.on(E.TRACK_REMOVED, (pista) => {
+    if (pista.isLocal()) return
+    if (pista.getType() === 'audio') return quitarAudio(pista)
+    quitarPista(pista)
+  })
   conf.setDisplayName($('nombre').value.trim() || 'NDI')
   conf.join()
 }
@@ -415,15 +506,16 @@ async function desconectar () {
   estado.conferencia = null
   estado.conexion = null
   marcarConectado(false)
-  ponerEstado('desconectado')
+  ponerEstado(t('desconectado'))
 }
 
 function marcarConectado (si) {
   estado.conectado = si
   const b = $('btnConectar')
-  b.textContent = si ? 'desconectar' : 'conectar'
+  b.textContent = si ? t('desconectar') : t('conectar')
+  b.dataset.t = si ? 'desconectar' : 'conectar'
   b.setAttribute('aria-pressed', String(si))
-  for (const c of campos) if (c !== 'encuadre') $(c).disabled = si
+  for (const c of campos) if (!enVivo.includes(c)) $(c).disabled = si
   actualizarResumen()
 }
 
@@ -449,9 +541,25 @@ function alternarControles (ocultar) {
 }
 
 $('version').textContent = 'v' + puente.version
-$('ndiInfo').innerHTML = ndi.disponible
-  ? `NDI <b>${String(ndi.version).split(' ').pop()}</b> · equipo <b>${puente.equipo}</b>`
-  : 'NDI no disponible: revisa la instalación (npm install)'
+function pintarPie () {
+  $('ndiInfo').innerHTML = ndi.disponible
+    ? `NDI <b>${String(ndi.version).split(' ').pop()}</b> · ${t('equipo')} <b>${puente.equipo}</b>`
+    : t('ndiNo')
+}
+aplicarIdioma()
+pintarPie()
+$('estado').textContent = t('desconectado')
+$('btnIdioma').addEventListener('click', cambiarIdioma)
+document.addEventListener('idioma', () => {
+  pintarPie()
+  actualizarResumen()
+  for (const p of estado.participantes.values()) p.el.querySelector('.btnAudio').title = t('audioFicha')
+})
+$('audioDef').addEventListener('change', () => {
+  guardar()
+  const si = $('audioDef').value === 'si'
+  for (const p of estado.participantes.values()) if (!p.clave.endsWith(':desktop')) ponerAudio(p, si)
+})
 cargar()
 aplicarEncuadreVista()
 $('encuadre').addEventListener('change', () => { guardar(); aplicarEncuadreVista() })
@@ -475,7 +583,7 @@ if (prueba) {
       clearInterval(revisar)
       const p = lista60[0]
       log('modo de lectura:', p.modo)
-      const r = await ndi.verificar(p.salida.completo)
+      const r = await ndi.verificar(p.salida.completo, 10, prueba.audio)
       if (!r.ok) return terminarPrueba(1, r.motivo)
       // con la ventana oculta (como minimizada) los cuadros deben seguir llegando
       puente.ventana('ocultar')

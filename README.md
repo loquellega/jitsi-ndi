@@ -1,6 +1,6 @@
 # jitsi-ndi
 
-**Versión 0.6.0 · Encuadre horizontal fijo**
+**Versión 0.7.0 · Audio por persona e interfaz en español / English**
 
 **Descargar:** [Releases](https://github.com/loquellega/jitsi-ndi/releases/latest) → `jitsi-ndi-…-windows-x64.exe` (portable, no se instala; necesita NDI Tools).
 
@@ -107,6 +107,8 @@ En la ventana escribe la dirección del servidor (`https://IP-DE-LA-PC:8443`), l
 - **Si alguien sale y vuelve** con el mismo nombre, regresa a la misma señal: el NDI In TOP de TouchDesigner no se rompe.
 - **Calidad:** 360p por defecto (también 180p o 720p).
 - **Encuadre:** el TCRV trabaja en horizontal. Con **horizontal · llenar** (por defecto) cada señal sale siempre en 16:9 al mismo tamaño (640×360 en 360p); si alguien pone su teléfono en vertical, se recorta el centro y el cuadro sigue lleno, sin deformar. **Horizontal · ajustar** muestra la imagen completa con barras negras, y **original** la manda tal como llega. Se puede cambiar en vivo.
+- **Audio por persona:** cada ficha tiene un botón **♪**. Encendido, la voz de esa persona viaja dentro de su misma señal NDI (en TouchDesigner: *Audio NDI CHOP* con la misma fuente). Apagado, la app ni lo lee. **Audio al entrar** decide si las personas nuevas llegan con el audio encendido o apagado, y al cambiarlo se aplica a todas.
+- **Idioma:** español o inglés según la computadora; el botón **EN / ES** lo cambia.
 - **Teclado:** `h` oculta los controles, `i` muestra «acerca de».
 
 La prueba automática de GitHub levanta Jitsi en Docker, mete un participante con cámara de prueba y confirma que su video llega por NDI.
@@ -138,9 +140,26 @@ npm run prueba
 
 In TouchDesigner, add an **NDI In TOP** and pick `YOUR-PC (TCRV Prueba 1)`, `…2`, and so on. Source 3 is portrait (360×640), like an upright phone.
 
-### Receiver app (steps 3–4)
+### Receiver app
 
-With the Jitsi server running (`servidor/preparar.ps1`, then `docker compose up -d`), run `npm install` and `npm start`, enter the server address and room, and press **conectar**. Each participant's camera becomes an NDI source named `PREFIX Name` (e.g. `YOUR-PC (TCRV Ana)`), kept stable if they leave and rejoin.
+Download the Windows executable from [Releases](https://github.com/loquellega/jitsi-ndi/releases/latest) (portable, no install; requires NDI Tools), or run `npm install` and `npm start`. Enter the server address and room, then press **connect**. The app joins as «NDI», with no camera or microphone:
+
+- **One NDI source per person**, named `PREFIX Name` (e.g. `YOUR-PC (TCRV Ana)`). If someone leaves and comes back, or their phone locks and returns with a new camera, they keep the same source, so your NDI In TOP never breaks.
+- **Quality:** 360p by default (also 180p or 720p). Frames are read straight from the WebRTC stream, so the app keeps full speed even when minimized.
+- **Framing:** TCRV works in landscape. **landscape · fill** (default) keeps every source at 16:9 and the same size (640×360 at 360p); if a phone is held upright, the center is cropped so the frame stays full, without distortion. **landscape · fit** shows the whole image with black bars; **original** sends it as received. Can be changed live.
+- **Per-person audio:** each tile has a **♪** button. When on, that person's voice travels inside the same NDI source (in TouchDesigner: *Audio NDI CHOP*). When off, the app doesn't even read it. **audio on join** sets the default for newcomers.
+- **Language:** Spanish or English, following the computer; the **EN / ES** button switches it.
+
+### Internet server
+
+For people in other cities or countries: an Ubuntu 22.04/24.04 server (Oracle Cloud free tier, Vultr, any VPS), a subdomain pointing to it, ports TCP 80/443 and UDP 10000 open, and one command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/loquellega/jitsi-ndi/main/servidor/instalar-vps.sh \
+  | sudo bash -s -- tcrv.example.com you@example.com
+```
+
+It installs Docker and Jitsi with a Let's Encrypt certificate, 360p and a 15-person cap per room, on x86 or ARM.
 
 ## TCRV · Landscape Artes Escénicas
 
@@ -158,8 +177,8 @@ Más información: [TCRV · investigación](https://landscape.com.mx/teatro-de-c
 |---|---|---|
 | ![Receptor en la sala](docs/capturas/03-receptor-sala.png) | ![Receptor al iniciar](docs/capturas/02-receptor-inicio.png) | ![Acerca de](docs/capturas/04-acerca.png) |
 | En la sala, con cámaras simuladas / In the room, simulated cameras | Antes de conectar / Before connecting | Acerca de / About |
-| ![Señales de prueba](docs/capturas/01-senales-prueba.png) | | |
-| Las 8 señales de prueba / The 8 test sources | | |
+| ![Interfaz en inglés con audio](docs/capturas/05-ingles-audio.png) | ![Señales de prueba](docs/capturas/01-senales-prueba.png) | |
+| En inglés, con audio en dos personas / English, audio on for two people | Las 8 señales de prueba / The 8 test sources | |
 
 ## Licencia / License
 

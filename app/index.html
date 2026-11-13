@@ -11,53 +11,61 @@
     <span id="estado" class="estado" role="status">desconectado</span>
     <span class="espacio"></span>
     <span id="resumen" class="lectura"></span>
-    <button id="btnInfo" class="mini" title="Acerca de (i)" aria-label="Acerca de">i</button>
+    <button id="btnIdioma" class="mini idioma" type="button">EN</button>
+    <button id="btnInfo" class="mini" type="button" data-t-title="acercaTitulo" data-t-aria="acerca">i</button>
   </header>
 
   <form id="panel" class="panel" autocomplete="off">
-    <label>servidor<input id="servidor" type="url" spellcheck="false" placeholder="https://192.168.1.183:8443" required></label>
-    <label>sala<input id="sala" spellcheck="false" placeholder="tcrv-prueba" required></label>
-    <label>nombre en la sala<input id="nombre" spellcheck="false" placeholder="NDI"></label>
-    <label>prefijo NDI<input id="prefijo" spellcheck="false" placeholder="TCRV"></label>
-    <label>calidad
+    <label data-t-label="servidor">servidor<input id="servidor" type="url" spellcheck="false" placeholder="https://192.168.1.183:8443" required></label>
+    <label data-t-label="sala">sala<input id="sala" spellcheck="false" placeholder="tcrv-prueba" required></label>
+    <label data-t-label="nombreSala">nombre en la sala<input id="nombre" spellcheck="false" placeholder="NDI"></label>
+    <label data-t-label="prefijo">prefijo NDI<input id="prefijo" spellcheck="false" placeholder="TCRV"></label>
+    <label data-t-label="calidad">calidad
       <select id="altura">
         <option value="180">180p</option>
         <option value="360" selected>360p</option>
         <option value="720">720p</option>
       </select>
     </label>
-    <label>encuadre
-      <select id="encuadre" title="Cómo sale por NDI un teléfono puesto en vertical">
-        <option value="llenar" selected>horizontal · llenar</option>
-        <option value="ajustar">horizontal · ajustar</option>
-        <option value="original">original</option>
+    <label data-t-label="encuadre">encuadre
+      <select id="encuadre" data-t-title="encuadreTitulo">
+        <option value="llenar" selected data-t="llenar">horizontal · llenar</option>
+        <option value="ajustar" data-t="ajustar">horizontal · ajustar</option>
+        <option value="original" data-t="original">original</option>
       </select>
     </label>
-    <button id="btnConectar" class="principal" type="submit" aria-pressed="false">conectar</button>
+    <label data-t-label="audio">audio al entrar
+      <select id="audioDef" data-t-title="audioTitulo">
+        <option value="no" selected data-t="apagado">apagado</option>
+        <option value="si" data-t="encendido">encendido</option>
+      </select>
+    </label>
+    <button id="btnConectar" class="principal" type="submit" aria-pressed="false" data-t="conectar">conectar</button>
   </form>
 
   <main id="rejilla" class="rejilla" aria-live="polite">
-    <p id="vacio" class="vacio">Conéctate a la sala. Cada persona con cámara aparecerá aquí y saldrá por NDI con su nombre.</p>
+    <p id="vacio" class="vacio" data-t="vacio">Conéctate a la sala. Cada persona con cámara aparecerá aquí y saldrá por NDI con su nombre.</p>
   </main>
 
   <footer class="pie">
     <span id="ndiInfo" class="lectura"></span>
     <span class="espacio"></span>
-    <span class="tenue">h oculta los controles</span>
+    <span class="tenue" data-t="ayudaTeclas">h oculta los controles · i acerca de</span>
   </footer>
 
   <div id="acerca" class="ventana acerca" hidden>
-    <div class="barra"><span class="titulo">acerca de</span><span class="espacio"></span><button id="btnCerrarInfo" class="mini" aria-label="Cerrar">×</button></div>
+    <div class="barra"><span class="titulo" data-t="acerca">acerca de</span><span class="espacio"></span><button id="btnCerrarInfo" class="mini" type="button" data-t-aria="cerrar">×</button></div>
     <div class="cuerpo">
       <p><strong>jitsi-ndi</strong> <span id="version"></span></p>
-      <p class="tenue">Recibe la cámara de cada participante de una reunión en Jitsi y la publica como una señal NDI separada, para el mixer TCRV en TouchDesigner.</p>
-      <p class="tenue">Forma parte de la investigación del <strong>TCRV · Teatro de Creación Remota en Vivo</strong> de Landscape Artes Escénicas (México): una metodología para crear en vivo con un elenco reunido en una videollamada, cada quien desde su lugar y su cámara, editado en tiempo real como en la televisión en directo. Reconocida con el World Summit Award 2020, iniciativa vinculada a la Cumbre Mundial sobre la Sociedad de la Información de las Naciones Unidas, y presentada en la Cuadrienal de Praga 2024.</p>
+      <p class="tenue" data-t="descripcion"></p>
+      <p class="tenue" data-t-html="tcrv"></p>
       <p><a href="https://landscape.com.mx/teatro-de-creacion-remota-en-vivo-2022-research/" target="_blank">landscape.com.mx · TCRV</a></p>
       <p>Diseño, investigación y desarrollo: Héctor Cruz Juárez — https://hectorcruz.com.mx<br>Colección Alchemy of Meaning.</p>
     </div>
   </div>
-  <button id="btnMostrar" class="recuperar" hidden aria-label="Mostrar controles">▪</button>
+  <button id="btnMostrar" class="recuperar" type="button" hidden data-t-aria="mostrar">▪</button>
 
+  <script src="idioma.js"></script>
   <script src="receptor.js"></script>
 </body>
 </html>
